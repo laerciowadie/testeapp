@@ -17,7 +17,10 @@ public class TwitterApp {
 
     public static void main(String[] args) throws Exception
     {
-
+        if(args == null || args.length == 0){
+            System.out.println("Informar uma hastag!");
+            return;
+        }
         //CONEXAO COM TWITTER
         ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
@@ -28,15 +31,32 @@ public class TwitterApp {
 
         Twitter twitter = new TwitterFactory(cb.build()).getInstance();
 
-        //CONEXAO COM O CASSANDRA
+        //CONEXAO COM O CASSANDRA e criacao em tempo de execucao do keyspace e columFamilies
         Cluster cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
-        Session session = cluster.connect("demo");
+        Session session = cluster.connect();
 
-        for(String hastag : args){
+        String queryCreate = "CREATE KEYSPACE twitterapp WITH replication "
+                + "= {'class':'SimpleStrategy', 'replication_factor':1};";
+        session.execute(queryCreate);
+        session.execute("USE twitterapp");
 
-            System.out.println("################# "+ hastag + "#####################");
+        //CRIANDO TABELA tweet
+        String queryCreateTable = "CREATE TABLE tweet(id bigint PRIMARY KEY,"
+                +"username varchar, "
+                +"hashtag varchar, "
+                + "msg text, "
+                + "lang varchar, "
+                + "userFollowers varint, "
+                + "createdAt timestamp );";
 
-            Query query = new Query(hastag);
+        session.execute(queryCreateTable);
+
+
+        for(String hashtag : args){
+
+            System.out.println("################# "+ hashtag + "#####################");
+
+            Query query = new Query(hashtag);
             long lastID = Long.MAX_VALUE;
             ArrayList<Status> tweets = new ArrayList<Status>();
             query.setCount(100);
@@ -51,11 +71,15 @@ public class TwitterApp {
 
             catch (TwitterException te) {
                 System.out.println("Couldn't connect: " + te);
+                te.printStackTrace();
+                return;
             }
 
             for (int i = 0; i < tweets.size(); i++) {
                 Status t = (Status) tweets.get(i);
 
+
+                Long id = t.getId();
                 String username = t.getUser().getScreenName();
                 String msg = t.getText();
                 String lang = t.getLang();
@@ -64,7 +88,8 @@ public class TwitterApp {
                 System.out. println(i + " USER: " + username + " followers: "+ userFollowers+ " createdAt: " +createdAt+ " lang: "+ lang + " wrote: " + msg + "\n");
 
                 //GRAVA NO CASSANDRA
-                session.execute("INSERT INTO users (lastname, age, city, email, firstname) VALUES ('Jones', 35, 'Austin', 'bob@example.com', 'Bob')");
+                session.execute("INSERT INTO tweet (id, username, hashtag, msg, lang, userFollowers, createdAt) " +
+                        "VALUES ("+id+", '"+username+"', '"+hashtag+"', '"+msg.replaceAll("'","")+"', '"+lang+"', "+userFollowers+", '"+createdAt.getTime()+"')");
             }
         }
 
