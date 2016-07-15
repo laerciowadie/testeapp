@@ -1,6 +1,8 @@
 package com.twiiterapp;
 
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
@@ -15,6 +17,8 @@ public class TwitterApp {
 
     public static void main(String[] args) throws Exception
     {
+
+        //CONEXAO COM TWITTER
         ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
                 .setOAuthConsumerKey("lWTZjl4oTqiGkWZzSB2JUQkwv")
@@ -23,6 +27,10 @@ public class TwitterApp {
                 .setOAuthAccessTokenSecret("9gRJYv0vryzYpWEWJbinsRvPfNH0HHGzN9zFoBd5zo4tG");
 
         Twitter twitter = new TwitterFactory(cb.build()).getInstance();
+
+        //CONEXAO COM O CASSANDRA
+        Cluster cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
+        Session session = cluster.connect("demo");
 
         for(String hastag : args){
 
@@ -44,13 +52,9 @@ public class TwitterApp {
             catch (TwitterException te) {
                 System.out.println("Couldn't connect: " + te);
             }
-            query.setMaxId(lastID-1);
-
 
             for (int i = 0; i < tweets.size(); i++) {
                 Status t = (Status) tweets.get(i);
-
-                // GeoLocation loc = t.getGeoLocation();
 
                 String username = t.getUser().getScreenName();
                 String msg = t.getText();
@@ -58,8 +62,13 @@ public class TwitterApp {
                 Integer userFollowers = t.getUser().getFollowersCount();
                 Date createdAt = t.getCreatedAt();
                 System.out. println(i + " USER: " + username + " followers: "+ userFollowers+ " createdAt: " +createdAt+ " lang: "+ lang + " wrote: " + msg + "\n");
+
+                //GRAVA NO CASSANDRA
+                session.execute("INSERT INTO users (lastname, age, city, email, firstname) VALUES ('Jones', 35, 'Austin', 'bob@example.com', 'Bob')");
             }
         }
+
+        cluster.close();
     }
 
 }
