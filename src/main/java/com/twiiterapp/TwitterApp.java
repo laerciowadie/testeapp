@@ -35,13 +35,13 @@ public class TwitterApp {
         Cluster cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
         Session session = cluster.connect();
 
-        String queryCreate = "CREATE KEYSPACE twitterapp WITH replication "
+        String queryCreate = "CREATE KEYSPACE IF NOT EXISTS twitterapp WITH replication "
                 + "= {'class':'SimpleStrategy', 'replication_factor':1};";
         session.execute(queryCreate);
         session.execute("USE twitterapp");
 
         //CRIANDO TABELA tweet
-        String queryCreateTable = "CREATE TABLE tweet(id bigint PRIMARY KEY,"
+        String queryCreateTableTweet = "CREATE TABLE IF NOT EXISTS tweet(id bigint PRIMARY KEY,"
                 +"username varchar, "
                 +"hashtag varchar, "
                 + "msg text, "
@@ -49,7 +49,29 @@ public class TwitterApp {
                 + "userFollowers varint, "
                 + "createdAt timestamp );";
 
-        session.execute(queryCreateTable);
+        session.execute(queryCreateTableTweet);
+
+
+        //CRIANDO TABELA topFiveUsers
+        String queryCreateTableTopFiveUsers = "CREATE TABLE IF NOT EXISTS topFiveUsers(uuid bigint PRIMARY KEY,"
+                +"username varchar, "
+                + "userFollowers varint);";
+
+        session.execute(queryCreateTableTopFiveUsers);
+
+        //CRIANDO TABELA resumeByTag
+        String queryCreateTableResumeByTag = "CREATE TABLE IF NOT EXISTS resumeByTag(uuid bigint PRIMARY KEY,"
+                +"hashtag varchar, "
+                + "count varint);";
+
+        session.execute(queryCreateTableResumeByTag);
+
+        //CRIANDO TABELA resumeByDayHour
+        String queryCreateTableResumeByDayHour = "CREATE TABLE IF NOT EXISTS resumeByDayHour(uuid bigint PRIMARY KEY,"
+                +"dayhour varchar, "
+                + "count varint);";
+
+        session.execute(queryCreateTableResumeByDayHour);
 
 
         for(String hashtag : args){
