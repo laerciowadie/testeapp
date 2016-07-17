@@ -92,7 +92,7 @@ public class TwitterApp {
             }
 
             catch (TwitterException te) {
-                System.out.println("Couldn't connect: " + te);
+                System.out.println("Não conseguiu conectar com Twitter: " + te);
                 te.printStackTrace();
                 return;
             }
